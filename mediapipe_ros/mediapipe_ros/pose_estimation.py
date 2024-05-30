@@ -7,6 +7,8 @@ from rclpy.node import Node
 from mediapipe_msg.msg import PoseList
 from mediapipe.python.solutions.pose import PoseLandmark
 from sensor_msgs.msg import Image
+# Use message_filters to synchronize the depth and rgb camera
+from message_filters import ApproximateTimeSynchronizer, Subscriber
 
 
 mp_drawing = mp.solutions.drawing_utils
@@ -37,35 +39,30 @@ class PosePublisher(Node):
         super().__init__('mediapipe_pose_publisher')
         self.publisher_ = self.create_publisher(PoseList, '/mediapipe/pose_list', 10)
         self.image_publisher=self.create_publisher(Image, '/processed/image', 10)
-        self.subscription = self.create_subscription(Image, '/rgb/image_raw', self.getrgb_callback, 10)
-        self.subscription = self.create_subscription(Image, '/depth_to_rgb/image_raw', self.getdepth_callback, 10)
+        self.sub_rgb = Subscriber(Image, '/rgb/image_raw')
+        self.sub_depth = Subscriber(Image, '/depth_to_rgb/image_raw')
+        self.ts = ApproximateTimeSynchronizer([self.sub_rgb, self.sub_depth], queue_size=10, slop=0.1)
+        self.ts.registerCallback(self.getdepth_callback, self.getrgb_callback)
         self.bridge = CvBridge()
 
     #callback function for depth camera    
-    def getdepth_callback(self, msg):
-        try:
-            #conver form 32FC1 to np array
-            #depth = np.frombuffer(msg.data, dtype=np.uint16).reshape(msg.height,msg.width)                 
-            depth = self.bridge.imgmsg_to_cv2(msg, "16UC1") 
-            self.depth = depth[::-1,:]
-            if hasattr(self, 'rgb'):
-                self.compare_depth(self.rgb,self.depth)
-        except CvBridgeError as e:
-            self.get_logger().error(f"Error converting from depth camera: {e}")
-        except Exception as e:
-            self.get_logger().error(f"Error form depth camera: {e}")
-
-    #callback function for rgb camera
-    def getrgb_callback(self, msg):
+    def getcamera_callback(self, msg):
         try:
             image_msg = self.bridge.imgmsg_to_cv2(msg, "bgr8")
             self.rgb = cv2.cvtColor(cv2.flip(image_msg, 0), cv2.COLOR_BGR2RGB)                
-            if hasattr(self, 'depth'):
-                self.compare_depth(self.rgb,self.depth)
+            #conver form 16UC1 to np array
+            #depth = np.frombuffer(msg.data, dtype=np.uint16).reshape(msg.height,msg.width)                 
+            depth = self.bridge.imgmsg_to_cv2(msg, "16UC1") 
+            #flip the depth image
+            self.depth = depth[::-1,:]
+            self.compare_depth(self.rgb,self.depth)
+
         except CvBridgeError as e:
-            self.get_logger().error(f"Error converting from rgb camera: {e}")
+            self.get_logger().error(f"Error converting from depth camera: {str{e}}")
         except Exception as e:
-            self.get_logger().error(f"Error form rgb camera: {e}")
+            self.get_logger().error(f"Camera : {e}")
+
+        self.get_logger().error(f"Synced depth camera")
 
     #compare depth and rgb image
     def compare_depth(self, image, depth):
@@ -117,7 +114,6 @@ def main(args=None):
     pose_publisher=PosePublisher()
     rclpy.spin(pose_publisher)
     pose_publisher.destroy_node()
-    rclpy.shutdown()
 
 
 if __name__ == '__main__':
