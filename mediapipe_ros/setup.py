@@ -22,6 +22,7 @@ setup(
         'console_scripts': [
             'pose_estimation_node = mediapipe_ros.pose_estimation:main',
             'visualization_node = mediapipe_ros.visualization:main',
+            'video_publisher_node = mediapipe_ros.video_publisher:main',
         ],
     },
 )
