@@ -1,6 +1,6 @@
 import rclpy
 import os
-import cv2
+import cv2 
 import mediapipe as mp
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
@@ -47,6 +47,7 @@ class PosePublisher(Node):
             output_segmentation_masks=False,
             result_callback=self.print_result
         )
+        self.landmarker = vision.PoseLandmarker.create_from_options(self.options) 
         self.pose_name = [
             "NOSE", "LEFT_EYE_INNER",
             "LEFT_EYE", "LEFT_EYE_OUTER",
@@ -67,7 +68,7 @@ class PosePublisher(Node):
             "RIGHT_FOOT_INDEX"
         ]
 
-    #callback function for depth camera    
+        #callback function for depth camera    
     def getdepth_callback(self, msg):
         try:
             #conver form 32FC1 to np array
@@ -156,15 +157,12 @@ class PosePublisher(Node):
     #compare depth and rgb image
     def compare_depth(self):
 
-        with vision.PoseLandmarker.create_from_options(self.options) as landmarker:
-        
             # Draw the pose annotation on the image.
-            mp_image = mp.Image(
-                image_format=mp.ImageFormat.SRGB,
-                data=self.rgb)
-            timestamp_ms = int(cv2.getTickCount() / cv2.getTickFrequency() * 1000)
-            print(timestamp_ms)
-            landmarker.detect_async(mp_image, timestamp_ms)
+        mp_image = mp.Image(
+            image_format=mp.ImageFormat.SRGB,
+            data=self.rgb)
+        timestamp_ms = int(cv2.getTickCount() / cv2.getTickFrequency() * 1000)
+        self.landmarker.detect_async(mp_image, timestamp_ms)
 
 
 def main(args=None):
