@@ -23,7 +23,7 @@ setup(
     entry_points={
         'console_scripts': [
             'pose_estimation_node = mediapipe_ros.pose_estimation_node:main',
-            'visualization_node = mediapipe_ros.visualization:main',
+            'visualization_node = mediapipe_ros.visualization_node:main',
             'video_publisher_node = mediapipe_ros.video_publisher_node:main',
         ],
     },

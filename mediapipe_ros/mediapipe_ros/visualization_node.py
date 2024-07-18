@@ -14,7 +14,7 @@ class Visualization(Node):
     def __init__(self):
         super().__init__('visualization')
         self.point_array_pub = self.create_publisher(VisualPose, '/mediapipe/points3D', 10)
-        self.subscription=self.create_subscription(CameraInfo, '/rgb/camera_info', self.getcamerainfo_callback, 10)
+        self.subscription=self.create_subscription(CameraInfo, '/mediapipe/rgb/camera_info', self.getcamerainfo_callback, 10)
         self.subscription=self.create_subscription(PoseList, 'mediapipe/pose_list', self.pixel_to_3d, 10)
         self.broadcaster = tf2_ros.TransformBroadcaster(self)
         self.bridge = CvBridge()

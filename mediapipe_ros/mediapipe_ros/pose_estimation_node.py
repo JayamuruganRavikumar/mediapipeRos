@@ -99,10 +99,23 @@ class PosePublisher(Node):
         annotated_image = np.copy(rgb_image)
         poselist = PoseList() 
         h,w,c = rgb_image.shape
+        
+
 
         # Loop through the detected poses to visualize.
         for idx in range(len(pose_landmarks_list)):
             pose_landmarks = pose_landmarks_list[idx]
+            index = 0
+            for ids, landmark in enumerate(pose_landmarks): #check for wrist
+                if 15 <= ids < 23:
+                    
+                    cx, cy = landmark.x*w, landmark.y*h
+                    poselist.human_pose[index].name =self.pose_name[ids]
+                    poselist.human_pose[index].x = cx
+                    poselist.human_pose[index].y = cy
+                    poselist.human_pose[index].z = float(self.depth[int(cy),int(cx)]) 
+                    index+=1
+            self.publisher_.publish(poselist)
 
             pose_landmarks_proto = landmark_pb2.NormalizedLandmarkList()
             pose_landmarks_proto.landmark.extend([
@@ -116,30 +129,6 @@ class PosePublisher(Node):
                 pose_landmarks_proto,
                 mp.solutions.pose.POSE_CONNECTIONS,
                 mp.solutions.drawing_styles.get_default_pose_landmarks_style())
-
-        if pose_landmarks_list != None:
-            index = 0
-            for ids, pose_landmarks in enumerate(pose_landmarks_list):
-                #check for wrist
-                if 15 <= ids < 23:
-                    cx,cy = pose_landmarks.landmark.x*w, pose_landmarks.landmark.y*h
-                    poselist.human_pose[index].name =self.pose_name[ids]
-                    poselist.human_pose[index].x = cx
-                    poselist.human_pose[index].y = cy
-                    poselist.human_pose[index].z = 0.0 
-                    index+=1
-            self.publisher_.publish(poselist)
-
-        else: 
-            index = 0
-            for ids, pose_landmarks in enumerate(pose_landmarks_list):
-                if 15 <= ids < 23:
-                    poselist.human_pose[index].name = self.pose_name[ids]
-                    poselist.human_pose[index].x = 0.0
-                    poselist.human_pose[index].y = 0.0
-                    poselist.human_pose[index].z = 0.0
-                    index+=1
-            self.publisher_.publish(poselist)
 
         return annotated_image
 
